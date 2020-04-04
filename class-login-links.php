@@ -27,7 +27,7 @@ class Login_Links {
 			return;
 		}
 		if ( isset( $_POST['submit'] ) ) {
-			add_action( 'init', array( $this, 'post' ) );
+			add_action( 'init', array( $this, 'add_code' ) );
 		}
 	}
 
@@ -81,35 +81,78 @@ class Login_Links {
 
 	/** Admin page */
 	public function admin_page() {
+		global $wpdb;
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
-		$ll_user_id = get_user_by( 'login', 'login_links_admin' )->ID;
+		$ll_user_id     = get_user_by( 'login', 'login_links_admin' )->ID;
+		$wp_user_search = $wpdb->get_results( "SELECT ID, display_name, user_login FROM $wpdb->users ORDER BY ID" );
+		$options        = '';
+		foreach ( $wp_user_search as $userid ) {
+			$user_id      = (int) $userid->ID;
+			$user_login   = stripslashes( $userid->user_login );
+			$display_name = stripslashes( $userid->display_name );
+			$options     .= "<option value='$user_login'>$display_name - $user_login</option>";
+		}
+		$codes = get_user_meta( $ll_user_id, 'login_codes', true );
 		?>
 		<div class="wrap">
-			<h2>Login Links</h2>
+			<h1>Login Links</h1>
 			<p>Create unique login links for users.</p>
 			<form action="" method="post">
-				<label for="link_code">Login Code: </label>
-				<input type="text" name="link_code" id="link_code" value="<?php echo esc_attr( $this->generate_hash( 18 ) ); ?>" required>
-				<label for="user_id">Username to Login: </label>
-				<input type="text" name="username" id="username" required>
-				<input type="submit" name="submit" id="submit" value="Submit">
+				<table class="form-table">
+					<tr>
+						<th><label for="link_code">Login Code: </label></th>
+						<td><input type="text" name="link_code" id="link_code" value="<?php echo esc_attr( $this->generate_hash() ); ?>" size="35" required readonly></td>
+					</tr>
+					<tr>
+						<th><label for="user_id">Username: </label></th>
+						<td>
+							<select name="user_list" id="user_list">
+								<?php echo $options; ?>
+							</select>
+						</td>
+					</tr>
+				</table>
+				<p class="submit"><input type="submit" name="submit" id="submit" class="button button-primary" value="Add Login Code"></p>
 			</form>
-			<?php var_dump( get_user_meta( $ll_user_id, 'login_codes' ) ); ?>
-			<?php echo $this->msg; ?>
+			<table class="wp-list-table widefat fixed striped">
+				<thead>
+					<tr>
+						<th><strong>Login Code</strong></th>
+						<th><strong>Name</strong></th>
+						<th><strong>Username</strong></th>
+						<th><strong>User ID</strong></th>
+					</tr>
+				</thead>
+				<?php
+				foreach ( $codes as $key => $val ) :
+					$user              = get_user_by( 'id', $val );
+					$user_id           = $val;
+					$user_login        = $user->user_login;
+					$user_display_name = $user->display_name;
+					?>
+				<tr>
+					<td><?php echo $key; ?></td>
+					<td><?php echo $user_display_name; ?></td>
+					<td><?php echo $user_login; ?></td>
+					<td><?php echo $user_id; ?></td>
+				</tr>
+				<?php endforeach; ?>
+			</table>
 		</div>
 		<?php
 	}
 
-	/** Post */
-	public function post() {
-		if ( ! isset( $_POST ) ) {
+	/** Add login code */
+	public function add_code() {
+		if ( ! isset( $_POST['submit'] ) ) {
 			return;
 		}
-		$f          = FILTER_SANITIZE_STRING;
-		$new_code   = isset( $_POST['link_code'] ) ? filter_input( INPUT_POST, 'link_code', $f ) : false;
-		$username   = isset( $_POST['username'] ) ? filter_input( INPUT_POST, 'username', $f ) : false;
+		$f        = FILTER_SANITIZE_STRING;
+		$new_code = isset( $_POST['link_code'] ) ? filter_input( INPUT_POST, 'link_code', $f ) : false;
+		$username = isset( $_POST['user_list'] ) ? filter_input( INPUT_POST, 'user_list', $f ) : false;
+		echo "<script>console.log('$username')</script>";
 		$user_id    = $username ? get_user_by( 'login', $username )->ID : false;
 		$ll_user_id = get_user_by( 'login', 'login_links_admin' )->ID;
 		$codes      = get_user_meta( $ll_user_id, 'login_codes' ) ? get_user_meta( $ll_user_id, 'login_codes', true ) : array();
