@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Login Links
- * Plugin URI: https://github.com/trvswgnr/pmpro-register-helper-admin.git
+ * Plugin URI: https://github.com/trvswgnr/login-links.git
  * Description: Generate unique login links for users.
  * Version: 1.0.0
  * Author: Travis Aaron Wagner
