@@ -85,6 +85,9 @@ class Login_Links {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
+		if ( isset( $_POST['delete_submit'] ) ) {
+			$this->delete_code();
+		}
 		$ll_user_id     = get_user_by( 'login', 'login_links_admin' )->ID;
 		$wp_user_search = $wpdb->get_results( "SELECT ID, display_name, user_login FROM $wpdb->users ORDER BY ID" );
 		$options        = '';
@@ -119,10 +122,11 @@ class Login_Links {
 			<table class="wp-list-table widefat fixed striped">
 				<thead>
 					<tr>
-						<th><strong>Login Code</strong></th>
+						<th style="width: 20em;"><strong>Login Code</strong></th>
 						<th><strong>Name</strong></th>
 						<th><strong>Username</strong></th>
 						<th><strong>User ID</strong></th>
+						<th><strong>Actions</strong></th>
 					</tr>
 				</thead>
 				<?php
@@ -133,10 +137,11 @@ class Login_Links {
 					$user_display_name = $user->display_name;
 					?>
 				<tr>
-					<td><?php echo $key; ?></td>
-					<td><?php echo $user_display_name; ?></td>
-					<td><?php echo $user_login; ?></td>
-					<td><?php echo $user_id; ?></td>
+					<td><?php echo esc_html( $key ); ?></td>
+					<td><?php echo esc_html( $user_display_name ); ?></td>
+					<td><?php echo esc_html( $user_login ); ?></td>
+					<td><?php echo esc_html( $user_id ); ?></td>
+					<td><form action="" method="post"><input type="text" name="delete_code" value="<?php echo esc_attr( $key ); ?>" hidden><input type="submit" name="delete_submit" value="Delete"></form></td>
 				</tr>
 				<?php endforeach; ?>
 			</table>
@@ -149,10 +154,9 @@ class Login_Links {
 		if ( ! isset( $_POST['submit'] ) ) {
 			return;
 		}
-		$f        = FILTER_SANITIZE_STRING;
-		$new_code = isset( $_POST['link_code'] ) ? filter_input( INPUT_POST, 'link_code', $f ) : false;
-		$username = isset( $_POST['user_list'] ) ? filter_input( INPUT_POST, 'user_list', $f ) : false;
-		echo "<script>console.log('$username')</script>";
+		$f          = FILTER_SANITIZE_STRING;
+		$new_code   = isset( $_POST['link_code'] ) ? filter_input( INPUT_POST, 'link_code', $f ) : false;
+		$username   = isset( $_POST['user_list'] ) ? filter_input( INPUT_POST, 'user_list', $f ) : false;
 		$user_id    = $username ? get_user_by( 'login', $username )->ID : false;
 		$ll_user_id = get_user_by( 'login', 'login_links_admin' )->ID;
 		$codes      = get_user_meta( $ll_user_id, 'login_codes' ) ? get_user_meta( $ll_user_id, 'login_codes', true ) : array();
@@ -160,6 +164,15 @@ class Login_Links {
 			$codes[ $new_code ] = $user_id;
 			$this->codes        = $codes;
 		}
+		update_user_meta( $ll_user_id, 'login_codes', $codes );
+	}
+
+	/** Delete code */
+	public function delete_code() {
+		$ll_user_id  = get_user_by( 'login', 'login_links_admin' )->ID;
+		$delete_code = filter_input( INPUT_POST, 'delete_code', FILTER_SANITIZE_STRING );
+		$codes       = get_user_meta( $ll_user_id, 'login_codes', true );
+		unset( $codes[ $delete_code ] );
 		update_user_meta( $ll_user_id, 'login_codes', $codes );
 	}
 
