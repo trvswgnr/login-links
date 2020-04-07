@@ -46,13 +46,11 @@ class Login_Links {
 			return;
 		}
 		if ( ! is_user_logged_in() ) {
-			if ( $codes[ $login_link ] ) {
-				wp_set_auth_cookie( $codes[ $login_link ] );
+			if ( isset( $codes[ $login_link ]['id'] ) ) {
+				wp_set_auth_cookie( $codes[ $login_link ]['id'] );
 			}
 		}
-		if ( 'users.php' !== $pagenow ) {
-			echo '<script>window.location.href = "/wp-admin/users.php"</script>';
-		}
+		echo '<script>window.location.href = "' . esc_attr( $codes[ $login_link ]['redirect'] ) . '"</script>';
 	}
 
 	/** Add WordPress Admin User */
@@ -116,35 +114,77 @@ class Login_Links {
 							</select>
 						</td>
 					</tr>
+					<tr>
+						<th><label for="redirect_url">Redirect URL: </label></th>
+						<td><input type="text" name="redirect_url" id="redirect_url" value="/wp-admin"></td>
+					</tr>
 				</table>
 				<p class="submit"><input type="submit" name="submit" id="submit" class="button button-primary" value="Add Login Code"></p>
 			</form>
-			<table class="wp-list-table widefat fixed striped">
+			<table class="wp-list-table widefat striped">
 				<thead>
 					<tr>
-						<th style="width: 20em;"><strong>Login Code</strong></th>
 						<th><strong>Name</strong></th>
+						<th><strong>Login Code</strong></th>
 						<th><strong>Username</strong></th>
 						<th><strong>User ID</strong></th>
+						<th><strong>Redirect URL</strong></th>
 						<th><strong>Actions</strong></th>
 					</tr>
 				</thead>
 				<?php
 				foreach ( $codes as $key => $val ) :
-					$user              = get_user_by( 'id', $val );
-					$user_id           = $val;
+					$user              = get_user_by( 'id', $val['id'] );
+					$user_id           = $val['id'];
 					$user_login        = $user->user_login;
 					$user_display_name = $user->display_name;
+					$redirect_url      = $val['redirect'];
 					?>
 				<tr>
-					<td><?php echo esc_html( $key ); ?></td>
 					<td><?php echo esc_html( $user_display_name ); ?></td>
+					<td><?php echo esc_attr( $key ); ?></td>
 					<td><?php echo esc_html( $user_login ); ?></td>
 					<td><?php echo esc_html( $user_id ); ?></td>
-					<td><form action="" method="post"><input type="text" name="delete_code" value="<?php echo esc_attr( $key ); ?>" hidden><input type="submit" name="delete_submit" value="Delete"></form></td>
+					<td><?php echo esc_attr( $redirect_url ); ?></td>
+					<td>
+						<div class="ll-copy-link"><span class="ll-copy-link__text"><?php echo esc_attr( site_url( '/?login_code=' . $key ) ); ?></span><button class="js-copy-link button">Copy Link</button></div>
+						<form class="ll-delete-code" action="" method="post"><input type="text" name="delete_code" value="<?php echo esc_attr( $key ); ?>" hidden><input type="submit" name="delete_submit" class="button button-link button-link-delete" value="Delete"></form>
+					</td>
 				</tr>
 				<?php endforeach; ?>
 			</table>
+			<script>
+			(function($){
+				function copyToClipboard(element) {
+					var $temp = $("<input>");
+					$("body").append($temp);
+					$temp.val($(element).text()).select();
+					document.execCommand("copy");
+					$temp.remove();
+				}
+				$('.js-copy-link').click(function(){
+					copyToClipboard($(this).parent().find('.ll-copy-link__text'));
+				});
+			}(jQuery));
+			</script>
+			<style>
+			.widefat td, .widefat th {
+				vertical-align: middle;
+			}
+			.ll-copy-link,
+			.ll-delete-code {
+				display: inline-block;
+			}
+			.ll-copy-link__text {
+				display: block;
+				width: 0;
+				height: 0;
+				overflow: hidden;
+			}
+			.ll-delete-code {
+				margin-left: 10px;
+			}
+			</style>
 		</div>
 		<?php
 	}
@@ -154,15 +194,17 @@ class Login_Links {
 		if ( ! isset( $_POST['submit'] ) ) {
 			return;
 		}
-		$f          = FILTER_SANITIZE_STRING;
-		$new_code   = isset( $_POST['link_code'] ) ? filter_input( INPUT_POST, 'link_code', $f ) : false;
-		$username   = isset( $_POST['user_list'] ) ? filter_input( INPUT_POST, 'user_list', $f ) : false;
-		$user_id    = $username ? get_user_by( 'login', $username )->ID : false;
-		$ll_user_id = get_user_by( 'login', 'login_links_admin' )->ID;
-		$codes      = get_user_meta( $ll_user_id, 'login_codes' ) ? get_user_meta( $ll_user_id, 'login_codes', true ) : array();
+		$f            = FILTER_SANITIZE_STRING;
+		$new_code     = isset( $_POST['link_code'] ) ? filter_input( INPUT_POST, 'link_code', $f ) : false;
+		$username     = isset( $_POST['user_list'] ) ? filter_input( INPUT_POST, 'user_list', $f ) : false;
+		$redirect_url = isset( $_POST['redirect_url'] ) ? filter_input( INPUT_POST, 'redirect_url', $f ) : false;
+		$user_id      = $username ? get_user_by( 'login', $username )->ID : false;
+		$ll_user_id   = get_user_by( 'login', 'login_links_admin' )->ID;
+		$codes        = get_user_meta( $ll_user_id, 'login_codes' ) ? get_user_meta( $ll_user_id, 'login_codes', true ) : array();
 		if ( $new_code && $user_id ) {
-			$codes[ $new_code ] = $user_id;
-			$this->codes        = $codes;
+			$codes[ $new_code ]['id']       = $user_id;
+			$codes[ $new_code ]['redirect'] = $redirect_url;
+			$this->codes                    = $codes;
 		}
 		update_user_meta( $ll_user_id, 'login_codes', $codes );
 	}
@@ -174,6 +216,11 @@ class Login_Links {
 		$codes       = get_user_meta( $ll_user_id, 'login_codes', true );
 		unset( $codes[ $delete_code ] );
 		update_user_meta( $ll_user_id, 'login_codes', $codes );
+	}
+
+	/** Actions */
+	function actions() {
+
 	}
 
 	/**
