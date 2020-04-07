@@ -51,6 +51,10 @@ class Login_Links {
 			}
 		}
 		echo '<script>window.location.href = "' . esc_attr( $codes[ $login_link ]['redirect'] ) . '"</script>';
+		if ( $codes[ $login_link ]['one_time_use'] ) {
+			unset( $codes[ $login_link ] );
+			update_user_meta( $this->ll_user_id, 'login_codes', $codes );
+		}
 	}
 
 	/** Add WordPress Admin User */
@@ -118,6 +122,10 @@ class Login_Links {
 						<th><label for="redirect_url">Redirect URL: </label></th>
 						<td><input type="text" name="redirect_url" id="redirect_url" value="/wp-admin"></td>
 					</tr>
+					<tr>
+						<th><label for="one_time_use">One-Time Use: </label></th>
+						<td><input type="checkbox" name="one_time_use" id="one_time_use" value="1"></td>
+					</tr>
 				</table>
 				<p class="submit"><input type="submit" name="submit" id="submit" class="button button-primary" value="Add Login Code"></p>
 			</form>
@@ -129,6 +137,7 @@ class Login_Links {
 						<th><strong>Username</strong></th>
 						<th><strong>User ID</strong></th>
 						<th><strong>Redirect URL</strong></th>
+						<th><strong>One-Time Use</strong></th>
 						<th><strong>Actions</strong></th>
 					</tr>
 				</thead>
@@ -139,6 +148,7 @@ class Login_Links {
 					$user_login        = $user->user_login;
 					$user_display_name = $user->display_name;
 					$redirect_url      = $val['redirect'];
+					$one_time_use      = $val['one_time_use'] ? 'True' : 'False';
 					?>
 				<tr>
 					<td><?php echo esc_html( $user_display_name ); ?></td>
@@ -146,6 +156,7 @@ class Login_Links {
 					<td><?php echo esc_html( $user_login ); ?></td>
 					<td><?php echo esc_html( $user_id ); ?></td>
 					<td><?php echo esc_attr( $redirect_url ); ?></td>
+					<td><?php echo esc_attr( $one_time_use ); ?></td>
 					<td>
 						<div class="ll-copy-link"><span class="ll-copy-link__text"><?php echo esc_attr( site_url( '/?login_code=' . $key ) ); ?></span><button class="js-copy-link button">Copy Link</button></div>
 						<form class="ll-delete-code" action="" method="post"><input type="text" name="delete_code" value="<?php echo esc_attr( $key ); ?>" hidden><input type="submit" name="delete_submit" class="button button-link button-link-delete" value="Delete"></form>
@@ -198,13 +209,15 @@ class Login_Links {
 		$new_code     = isset( $_POST['link_code'] ) ? filter_input( INPUT_POST, 'link_code', $f ) : false;
 		$username     = isset( $_POST['user_list'] ) ? filter_input( INPUT_POST, 'user_list', $f ) : false;
 		$redirect_url = isset( $_POST['redirect_url'] ) ? filter_input( INPUT_POST, 'redirect_url', $f ) : false;
+		$one_time_use = isset( $_POST['one_time_use'] ) ? true : false;
 		$user_id      = $username ? get_user_by( 'login', $username )->ID : false;
 		$ll_user_id   = get_user_by( 'login', 'login_links_admin' )->ID;
 		$codes        = get_user_meta( $ll_user_id, 'login_codes' ) ? get_user_meta( $ll_user_id, 'login_codes', true ) : array();
 		if ( $new_code && $user_id ) {
-			$codes[ $new_code ]['id']       = $user_id;
-			$codes[ $new_code ]['redirect'] = $redirect_url;
-			$this->codes                    = $codes;
+			$codes[ $new_code ]['id']           = $user_id;
+			$codes[ $new_code ]['redirect']     = $redirect_url;
+			$codes[ $new_code ]['one_time_use'] = $one_time_use;
+			$this->codes                        = $codes;
 		}
 		update_user_meta( $ll_user_id, 'login_codes', $codes );
 	}
