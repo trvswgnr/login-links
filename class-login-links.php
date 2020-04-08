@@ -105,7 +105,7 @@ class Login_Links {
 			$options     .= "<option value='$user_login'>$display_name - $user_login</option>";
 		}
 		$codes              = get_user_meta( $ll_user_id, 'login_codes', true );
-		$default_expiration = gmdate( 'm/d/Y', strtotime( '+1 year' ) );
+		$default_expiration = gmdate( 'm/d/Y', strtotime( '+7 days' ) );
 		?>
 		<div class="wrap">
 			<h1>Login Links</h1>
