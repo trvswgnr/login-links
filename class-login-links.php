@@ -40,9 +40,16 @@ class Login_Links {
 		}
 		$login_link = filter_input( INPUT_GET, 'login_code', FILTER_SANITIZE_STRING );
 		$codes      = get_user_meta( $this->ll_user_id, 'login_codes', true );
+		$expires    = gmdate( 'Y-m-d', strtotime( $codes[ $login_link ]['expires'] ) );
+		$date_now   = gmdate( 'Y-m-d' );
 		$in_codes   = isset( $codes[ $login_link ] ) ? true : false;
 		$this->msg  = $in_codes ? 'in codes' : 'not in codes';
 		if ( ! $in_codes ) {
+			return;
+		}
+		if ( $date_now > $expires ) {
+			unset( $codes[ $login_link ] );
+			update_user_meta( $this->ll_user_id, 'login_codes', $codes );
 			return;
 		}
 		if ( ! is_user_logged_in() ) {
@@ -50,7 +57,7 @@ class Login_Links {
 				wp_set_auth_cookie( $codes[ $login_link ]['id'] );
 			}
 		}
-		echo '<script>window.location.href = "' . esc_attr( $codes[ $login_link ]['redirect'] ) . '"</script>';
+		// echo '<script>window.location.href = "' . esc_attr( $codes[ $login_link ]['redirect'] ) . '"</script>';
 		if ( $codes[ $login_link ]['one_time_use'] ) {
 			unset( $codes[ $login_link ] );
 			update_user_meta( $this->ll_user_id, 'login_codes', $codes );
@@ -78,7 +85,7 @@ class Login_Links {
 
 	/** Admin menu */
 	public function admin_menu() {
-		add_menu_page( 'Login Links', 'Login Links', 'manage_options', 'login-links', array( $this, 'admin_page' ), 'dashicons-tickets', 6 );
+		add_menu_page( 'Login Links', 'Login Links', 'manage_options', 'login-links', array( $this, 'admin_page' ), 'dashicons-admin-network', 40 );
 	}
 
 	/** Admin page */
@@ -99,7 +106,8 @@ class Login_Links {
 			$display_name = stripslashes( $userid->display_name );
 			$options     .= "<option value='$user_login'>$display_name - $user_login</option>";
 		}
-		$codes = get_user_meta( $ll_user_id, 'login_codes', true );
+		$codes              = get_user_meta( $ll_user_id, 'login_codes', true );
+		$default_expiration = gmdate( 'm/d/Y', strtotime( '+1 year' ) );
 		?>
 		<div class="wrap">
 			<h1>Login Links</h1>
@@ -114,7 +122,7 @@ class Login_Links {
 						<th><label for="user_id">Username: </label></th>
 						<td>
 							<select name="user_list" id="user_list">
-								<?php echo $options; ?>
+								<?php echo $options; // phpcs:ignore ?>
 							</select>
 						</td>
 					</tr>
@@ -125,6 +133,10 @@ class Login_Links {
 					<tr>
 						<th><label for="one_time_use">One-Time Use: </label></th>
 						<td><input type="checkbox" name="one_time_use" id="one_time_use" value="1"></td>
+					</tr>
+					<tr>
+						<th><label for="expires">Expires: </label></th>
+						<td><input type="text" name="expires" id="expires" value="<?php echo esc_attr( $default_expiration ); ?>"></td>
 					</tr>
 				</table>
 				<p class="submit"><input type="submit" name="submit" id="submit" class="button button-primary" value="Add Login Code"></p>
@@ -138,6 +150,7 @@ class Login_Links {
 						<th><strong>User ID</strong></th>
 						<th><strong>Redirect URL</strong></th>
 						<th><strong>One-Time Use</strong></th>
+						<th><strong>Expires</strong></th>
 						<th><strong>Actions</strong></th>
 					</tr>
 				</thead>
@@ -149,6 +162,7 @@ class Login_Links {
 					$user_display_name = $user->display_name;
 					$redirect_url      = $val['redirect'];
 					$one_time_use      = $val['one_time_use'] ? 'True' : 'False';
+					$expires           = $val['expires'] ? $val['expires'] : 'Never';
 					?>
 				<tr>
 					<td><?php echo esc_html( $user_display_name ); ?></td>
@@ -157,6 +171,7 @@ class Login_Links {
 					<td><?php echo esc_html( $user_id ); ?></td>
 					<td><?php echo esc_attr( $redirect_url ); ?></td>
 					<td><?php echo esc_attr( $one_time_use ); ?></td>
+					<td><?php echo esc_attr( $expires ); ?></td>
 					<td>
 						<div class="ll-copy-link"><span class="ll-copy-link__text"><?php echo esc_attr( site_url( '/?login_code=' . $key ) ); ?></span><button class="js-copy-link button">Copy Link</button></div>
 						<form class="ll-delete-code" action="" method="post"><input type="text" name="delete_code" value="<?php echo esc_attr( $key ); ?>" hidden><input type="submit" name="delete_submit" class="button button-link button-link-delete" value="Delete"></form>
@@ -210,6 +225,7 @@ class Login_Links {
 		$username     = isset( $_POST['user_list'] ) ? filter_input( INPUT_POST, 'user_list', $f ) : false;
 		$redirect_url = isset( $_POST['redirect_url'] ) ? filter_input( INPUT_POST, 'redirect_url', $f ) : false;
 		$one_time_use = isset( $_POST['one_time_use'] ) ? true : false;
+		$expires      = isset( $_POST['expires'] ) ? gmdate( 'm/d/Y', strtotime( filter_input( INPUT_POST, 'expires', $f ) ) ) : false;
 		$user_id      = $username ? get_user_by( 'login', $username )->ID : false;
 		$ll_user_id   = get_user_by( 'login', 'login_links_admin' )->ID;
 		$codes        = get_user_meta( $ll_user_id, 'login_codes' ) ? get_user_meta( $ll_user_id, 'login_codes', true ) : array();
@@ -217,6 +233,7 @@ class Login_Links {
 			$codes[ $new_code ]['id']           = $user_id;
 			$codes[ $new_code ]['redirect']     = $redirect_url;
 			$codes[ $new_code ]['one_time_use'] = $one_time_use;
+			$codes[ $new_code ]['expires']      = $expires;
 			$this->codes                        = $codes;
 		}
 		update_user_meta( $ll_user_id, 'login_codes', $codes );
