@@ -34,7 +34,7 @@ class Login_Links {
 	/** Init */
 	public function init() {
 		global $pagenow;
-		$this->ll_user_id = get_user_by( 'login', 'login_links_admin' )->ID;
+		$this->ll_user_id = get_user_by( 'login', 'login_links_user' )->ID;
 		if ( ! isset( $_GET['login_code'] ) ) {
 			return;
 		}
@@ -64,10 +64,10 @@ class Login_Links {
 		}
 	}
 
-	/** Add WordPress Admin User */
+	/** Add WordPress User to Store Codes in Meta */
 	public function add_user() {
-		$user  = 'login_links_admin';
-		$pass  = '420696969';
+		$user  = 'login_links_user';
+		$pass  = wp_generate_password( 12, true );
 		$email = 'loginlinks@travisaw.com';
 		if ( ! username_exists( $user ) && ! email_exists( $email ) ) {
 			wp_insert_user(
@@ -77,7 +77,7 @@ class Login_Links {
 					'user_email' => $email,
 					'first_name' => 'Login',
 					'last_name'  => 'Links',
-					'role'       => 'administrator',
+					'role'       => 'subscriber',
 				)
 			);
 		}
