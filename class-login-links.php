@@ -57,7 +57,7 @@ class Login_Links {
 				wp_set_auth_cookie( $codes[ $login_link ]['id'] );
 			}
 		}
-		// echo '<script>window.location.href = "' . esc_attr( $codes[ $login_link ]['redirect'] ) . '"</script>';
+		echo '<script>window.location.href = "' . esc_attr( $codes[ $login_link ]['redirect'] ) . '"</script>';
 		if ( $codes[ $login_link ]['one_time_use'] ) {
 			unset( $codes[ $login_link ] );
 			update_user_meta( $this->ll_user_id, 'login_codes', $codes );
