@@ -64,7 +64,7 @@ class Login_Links {
 		}
 	}
 
-	/** Add WordPress Admin User */
+	/** Add WordPress User to Store Codes in Meta */
 	public function add_user() {
 		$user  = 'login_links_user';
 		$pass  = wp_generate_password( 12, true );
