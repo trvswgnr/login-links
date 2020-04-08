@@ -1,5 +1,3 @@
 # Login Links
 
-Create custom url codes for users to login and be redirected.
-
-!!! WIP !!!
+Generate url codes for users to automatically login and be redirected.
