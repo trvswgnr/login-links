@@ -3,7 +3,7 @@
  * Plugin Name: Login Links
  * Plugin URI: https://github.com/trvswgnr/login-links.git
  * Description: Generate unique login links for users.
- * Version: 1.2.1
+ * Version: 1.2.2
  * Author: Travis Aaron Wagner
  * Author URI: https://travisaw.com
  * Text Domain: login-links
