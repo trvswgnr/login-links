@@ -97,7 +97,7 @@ class Login_Links {
 		if ( isset( $_POST['delete_submit'] ) ) {
 			$this->delete_code();
 		}
-		$ll_user_id     = get_user_by( 'login', 'login_links_admin' )->ID;
+		$ll_user_id     = $this->ll_user_id;
 		$wp_user_search = $wpdb->get_results( "SELECT ID, display_name, user_login FROM $wpdb->users ORDER BY ID" );
 		$options        = '';
 		foreach ( $wp_user_search as $userid ) {
@@ -227,7 +227,7 @@ class Login_Links {
 		$one_time_use = isset( $_POST['one_time_use'] ) ? true : false;
 		$expires      = isset( $_POST['expires'] ) ? gmdate( 'm/d/Y', strtotime( filter_input( INPUT_POST, 'expires', $f ) ) ) : false;
 		$user_id      = $username ? get_user_by( 'login', $username )->ID : false;
-		$ll_user_id   = get_user_by( 'login', 'login_links_admin' )->ID;
+		$ll_user_id   = $this->ll_user_id;
 		$codes        = get_user_meta( $ll_user_id, 'login_codes' ) ? get_user_meta( $ll_user_id, 'login_codes', true ) : array();
 		if ( $new_code && $user_id ) {
 			$codes[ $new_code ]['id']           = $user_id;
@@ -241,7 +241,7 @@ class Login_Links {
 
 	/** Delete code */
 	public function delete_code() {
-		$ll_user_id  = get_user_by( 'login', 'login_links_admin' )->ID;
+		$ll_user_id  = $this->ll_user_id;
 		$delete_code = filter_input( INPUT_POST, 'delete_code', FILTER_SANITIZE_STRING );
 		$codes       = get_user_meta( $ll_user_id, 'login_codes', true );
 		unset( $codes[ $delete_code ] );
