@@ -92,7 +92,7 @@ class Login_Links {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
-		if ( isset( $_POST['delete_submit'] ) && check_admin_referer( 'll_delete_code' ) ) {
+		if ( isset( $_POST['delete_submit'] ) && check_admin_referer( 'delete_code' ) ) {
 			$this->delete_code();
 		}
 		$ll_user_id     = $this->ll_user_id;
@@ -134,7 +134,7 @@ class Login_Links {
 					</tr>
 					<tr>
 						<th><label for="expires">Expires: </label></th>
-						<td><input type="text" name="expires" id="expires" value="<?php echo esc_attr( $default_expiration ); ?>"></td>
+						<td><input type="text" name="expires" id="expires" value="<?php echo esc_attr( $default_expiration ); ?>"><?php wp_nonce_field( 'action_add_code', 'nonce_add_code' ); ?></td>
 					</tr>
 				</table>
 				<p class="submit"><input type="submit" name="submit" id="submit" class="button button-primary" value="Add Login Code"></p>
@@ -172,7 +172,7 @@ class Login_Links {
 					<td><?php echo esc_attr( $expires ); ?></td>
 					<td>
 						<div class="ll-copy-link"><span class="ll-copy-link__text"><?php echo esc_attr( site_url( '/?login_code=' . $key ) ); ?></span><button class="js-copy-link button">Copy Link</button></div>
-						<form class="ll-delete-code" action="" method="post"><input type="text" name="delete_code" value="<?php echo esc_attr( $key ); ?>" hidden><?php wp_nonce_field( 'll_delete_code' ); ?><input type="submit" name="delete_submit" class="button button-link button-link-delete" value="Delete"></form>
+						<form class="ll-delete-code" action="" method="post"><input type="text" name="delete_code" value="<?php echo esc_attr( $key ); ?>" hidden><?php wp_nonce_field( 'delete_code' ); ?><input type="submit" name="delete_submit" class="button button-link button-link-delete" value="Delete"></form>
 					</td>
 				</tr>
 				<?php endforeach; ?>
@@ -215,7 +215,7 @@ class Login_Links {
 
 	/** Add login code */
 	public function add_code() {
-		if ( ! isset( $_POST['submit'] ) && wp_verify_nonce( $_POST ) ) {
+		if ( ! isset( $_POST['submit'] ) || ! isset( $_POST['nonce_add_code'] ) || ! wp_verify_nonce( sanitize_key( $_POST['nonce_add_code'] ), 'action_add_code' ) ) {
 			return;
 		}
 		$f            = FILTER_SANITIZE_STRING;
