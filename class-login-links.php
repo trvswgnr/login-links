@@ -26,16 +26,14 @@ class Login_Links {
 		if ( 'admin.php' !== $pagenow || 'login-links' !== $plugin_page ) {
 			return;
 		}
-		if ( isset( $_POST['submit'] ) ) {
-			add_action( 'init', array( $this, 'add_code' ) );
-		}
+		add_action( 'init', array( $this, 'add_code' ) );
 	}
 
 	/** Init */
 	public function init() {
 		global $pagenow;
 		$this->ll_user_id = get_user_by( 'login', 'login_links_user' )->ID;
-		if ( ! isset( $_GET['login_code'] ) ) {
+		if ( ! isset( $_GET['login_code'] ) ) { // phpcs:ignore
 			return;
 		}
 		$login_link = filter_input( INPUT_GET, 'login_code', FILTER_SANITIZE_STRING );
@@ -94,11 +92,11 @@ class Login_Links {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
-		if ( isset( $_POST['delete_submit'] ) ) {
+		if ( isset( $_POST['delete_submit'] ) && check_admin_referer( 'll_delete_code' ) ) {
 			$this->delete_code();
 		}
 		$ll_user_id     = $this->ll_user_id;
-		$wp_user_search = $wpdb->get_results( "SELECT ID, display_name, user_login FROM $wpdb->users ORDER BY ID" );
+		$wp_user_search = $wpdb->get_results( "SELECT ID, display_name, user_login FROM $wpdb->users ORDER BY ID" ); // phpcs:ignore
 		$options        = '';
 		foreach ( $wp_user_search as $userid ) {
 			$user_id      = (int) $userid->ID;
@@ -107,7 +105,7 @@ class Login_Links {
 			$options     .= "<option value='$user_login'>$display_name - $user_login</option>";
 		}
 		$codes              = get_user_meta( $ll_user_id, 'login_codes', true );
-		$default_expiration = gmdate( 'm/d/Y', strtotime( '+1 year' ) );
+		$default_expiration = gmdate( 'm/d/Y', strtotime( '+7 days' ) );
 		?>
 		<div class="wrap">
 			<h1>Login Links</h1>
@@ -174,7 +172,7 @@ class Login_Links {
 					<td><?php echo esc_attr( $expires ); ?></td>
 					<td>
 						<div class="ll-copy-link"><span class="ll-copy-link__text"><?php echo esc_attr( site_url( '/?login_code=' . $key ) ); ?></span><button class="js-copy-link button">Copy Link</button></div>
-						<form class="ll-delete-code" action="" method="post"><input type="text" name="delete_code" value="<?php echo esc_attr( $key ); ?>" hidden><input type="submit" name="delete_submit" class="button button-link button-link-delete" value="Delete"></form>
+						<form class="ll-delete-code" action="" method="post"><input type="text" name="delete_code" value="<?php echo esc_attr( $key ); ?>" hidden><?php wp_nonce_field( 'll_delete_code' ); ?><input type="submit" name="delete_submit" class="button button-link button-link-delete" value="Delete"></form>
 					</td>
 				</tr>
 				<?php endforeach; ?>
@@ -217,7 +215,7 @@ class Login_Links {
 
 	/** Add login code */
 	public function add_code() {
-		if ( ! isset( $_POST['submit'] ) ) {
+		if ( ! isset( $_POST['submit'] ) && wp_verify_nonce( $_POST ) ) {
 			return;
 		}
 		$f            = FILTER_SANITIZE_STRING;
@@ -246,11 +244,6 @@ class Login_Links {
 		$codes       = get_user_meta( $ll_user_id, 'login_codes', true );
 		unset( $codes[ $delete_code ] );
 		update_user_meta( $ll_user_id, 'login_codes', $codes );
-	}
-
-	/** Actions */
-	function actions() {
-
 	}
 
 	/**
